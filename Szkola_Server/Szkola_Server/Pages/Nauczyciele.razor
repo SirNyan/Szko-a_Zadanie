@@ -1,0 +1,253 @@
+﻿@page "/nauczyciele"
+<h3>Nauczyciele</h3>
+<br>
+<label for="ID">ID:  </label>
+<input type="number" id="ID" name="ID" @oninput="@((e) => { labelID=(string)e.Value;})">
+<br>
+<label for="imieL">Imie:  </label>
+<input type="text" id="imieL" name="imieL" @oninput="@((e) => { labelImie=(string)e.Value;})">
+<br>
+<label for="nazwiskoL">Nazwisko:  </label>
+<input type="text" id="nazwiskoL" name="nazwiskoL" @oninput="@((e) => { labelNazwisko=(string)e.Value;})">
+<br>
+<label for="poczatekL">Poczatek pracy:  </label>
+<input type="date" id="poczatekL" name="poczatekL" @oninput="@((e) => { labelPoczatek=(string)e.Value;})">
+<br>
+<label for="etatL">Etat:  </label>
+<input type="number" id="etatL" name="etatL" @oninput="@((e) => { labelEtat=(string)e.Value;})">
+<br>
+<button type="button" @onclick="search">Szukaj</button>
+<button type="button" @onclick="update">Aktualizacja</button>
+<button type="button" @onclick="create">Stworz</button>
+<button type="button" @onclick="delete">Usun</button>
+<br>
+<label for="klasaL">@message  </label>
+<table class="table">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Imie</th>
+            <th>Nazwisko</th>
+            <th>Poczatek</th>
+            <th>Etat</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var nauczyciel in nauczycieleTabela)
+        {
+            <tr>
+                <th>@nauczyciel.id</th>
+                <th>@nauczyciel.imie</th>
+                <th>@nauczyciel.nazwisko</th>
+                <th>@nauczyciel.poczatek.ToShortDateString()</th>
+                <th>@nauczyciel.etat</th>
+            </tr>
+        }
+    </tbody>
+</table>
+@code {
+    private List<nauczyciele> nauczycieleTabela;
+    private NpgsqlConnection connection;
+    private NpgsqlDataReader reader;
+    private string labelID;
+    private string labelImie;
+    private string labelNazwisko;
+    private string labelPoczatek;
+    private string labelEtat;
+
+    private string message = "";
+
+    // Łączenie się z bazą sql poprzez użycie NPGSql
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            labelID = "";
+            labelImie = "";
+            labelNazwisko = "";
+            labelPoczatek = "";
+            labelEtat = "";
+            nauczycieleTabela = new List<nauczyciele>();
+            connection = new NpgsqlConnection("Host=localhost;Database=szkola;Username=postgres;Password=czarnykot;Persist Security Info=True");
+            connection.Open();
+            querry("SELECT * FROM nauczyciele");
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e.Message);
+        }
+
+    }
+
+    /// <summary>
+    /// Metoda wysyłająca kod SQL z instrukcjami co do servera SQL. Może prosić o dane, tworzyć nowe tabele
+    /// usuwać albo edytować
+    /// </summary>
+    /// <param name="querry">Linia zawierająca kod SQLa</param>
+    protected void querry(string querry)
+    {
+        try
+        {
+            nauczycieleTabela.Clear();
+            NpgsqlCommand cmd = new NpgsqlCommand(querry, connection);
+            reader = cmd.ExecuteReader();
+
+            // Jeżeli reader dostał informacje spowrotem kod przekształca dane w tabele
+            if (reader.HasRows)
+            {
+                while (reader.Read())
+                {
+                    nauczyciele st = new nauczyciele();
+                    st.id = Int32.Parse(reader[0].ToString());
+                    st.imie = reader[1].ToString();
+                    st.nazwisko = reader[2].ToString();
+                    st.etat = Decimal.Parse(reader[3].ToString());
+                    st.poczatek = DateTime.Parse(reader[4].ToString());
+                    nauczycieleTabela.Add(st);
+                }
+                StateHasChanged();
+            }
+            reader.Close();
+        }
+        catch (Exception e)
+        {
+            message = "Querry: " + querry + " " + e.Message;
+            Console.WriteLine(e.Message);
+        }
+    }
+
+    // Wyszukaj największej liczby ID i ją oddaje. Do wykorzystania podczas tworzenia nowego wpisu do tabeli
+    public int getMaxID()
+    {
+        try
+        {
+            int maxID = 0;
+            NpgsqlCommand cmd = new NpgsqlCommand("SELECT Max(id) FROM nauczyciele", connection);
+            reader = cmd.ExecuteReader();
+            if (reader.HasRows)
+            {
+                while (reader.Read())
+                {
+                    maxID = Int32.Parse(reader[0].ToString());
+                }
+            }
+            reader.Close();
+            return maxID;
+        }
+        catch (Exception e)
+        {
+            message = e.Message;
+            return 1;
+        }
+    }
+
+    // Wyszukiwanie informacji na podstawie wpisanych danych przez użytkownika.
+    // Metoda tworzy kod SQL jako 'stringQuerry' i wysyła kod do querry()
+    protected void search()
+    {
+        bool flaga = false;
+        string stringQuerry = "SELECT * FROM nauczyciele";
+        if (!labelID.Equals(""))
+        {
+            stringQuerry += $" WHERE id='{Int32.Parse(labelID)}' ";
+            flaga = true;
+        }
+        if (!labelImie.Equals(""))
+        {
+            if (flaga)
+            {
+                stringQuerry += $"AND imie='{labelImie}' ";
+            }
+            else
+            {
+                stringQuerry += $" WHERE imie='{labelImie}' ";
+                flaga = true;
+            }
+        }
+        if (!labelNazwisko.Equals(""))
+        {
+            if (flaga)
+            {
+                stringQuerry += $"AND nazwisko='{labelNazwisko}' ";
+            }
+            else
+            {
+                stringQuerry += $" WHERE nazwisko='{labelNazwisko}' ";
+                flaga = true;
+            }
+        }
+        if (!labelPoczatek.Equals(""))
+        {
+            if (flaga)
+            {
+                stringQuerry += $"AND poczatek='{Convert.ToDateTime(labelPoczatek).Date}' ";
+            }
+            else
+            {
+                stringQuerry += $" WHERE poczatek='{Convert.ToDateTime(labelPoczatek).Date}' ";
+                flaga = true;
+            }
+        }
+        if (!labelEtat.Equals(""))
+        {
+            if (flaga)
+            {
+                stringQuerry += $"AND etat='{float.Parse(labelEtat)}' ";
+            }
+            else
+            {
+                stringQuerry += $" WHERE etat='{float.Parse(labelEtat)}' ";
+                flaga = true;
+            }
+        }
+        querry(stringQuerry);
+    }
+
+    // Metoda która edytuje wpisane już informacje na podstanie ID 'WHERE id={labelID}'
+    public void update()
+    {
+        string stringQuerry;
+        if (!labelID.Equals("") && !labelImie.Equals("") && !labelNazwisko.Equals("") && !labelPoczatek.Equals("") && !labelEtat.Equals(""))
+        {
+            stringQuerry = $"UPDATE nauczyciele SET imie = '{labelImie}', nazwisko = '{labelNazwisko}', " +
+                    $"poczatek = '{labelPoczatek}', etat = '{float.Parse(labelEtat)}' " +
+                    $"WHERE id = '{Int32.Parse(labelID)}'";
+            querry(stringQuerry);
+            querry("SELECT * FROM nauczyciele");
+        }
+        else
+        {
+            message = "Uzupelnij wszystkie warunki!";
+        }
+    }
+
+    // Stwórz nowy wpis do tabeli
+    public void create()
+    {
+        if (!labelImie.Equals("") && !labelNazwisko.Equals("") && !labelPoczatek.Equals("") && !labelEtat.Equals(""))
+        {
+            int maxID = getMaxID();
+            querry($"INSERT INTO nauczyciele VALUES ('{maxID + 1}', '{labelImie}', '{labelNazwisko}', '{float.Parse(labelEtat)}', '{labelPoczatek}')");
+        }
+    }
+
+    // Usuń wpis z tabeli
+    public void delete()
+    {
+        if (!labelID.Equals(""))
+        {
+            querry($"DELETE FROM nauczyciele WHERE id='{Int32.Parse(labelID)}'");
+            querry("SELECT * FROM nauczyciele");
+        }
+    }
+
+    // Klasa przechowuje dane z tabeli
+    public class nauczyciele
+    {
+        public int id { get; set; }
+        public string imie { get; set; }
+        public string nazwisko { get; set; }
+        public DateTime poczatek { get; set; }
+        public decimal etat { get; set; }
+    }
+}

@@ -1,0 +1,34 @@
+﻿@page "/"
+
+<h1>Aplikacja bazy danych szkoły</h1>
+
+Aplikacja wykonana przez Krzysztofa Toś
+
+
+
+
+Struktura SQL:
+
+Nauczyciel
+- ID  (PK)
+- Imie
+- Nazwisko
+- Etat
+- Początek
+
+Uczeń
+- ID  (PK)
+- Imię
+- Nazwisko
+- DOB
+- Średnia
+- Klasa (FK - Klasa.ID)
+
+Klasa
+- ID  (PK)
+- Nazwa Klasy
+
+Klasy_Nauczyciele (Many-to-Many)
+- ID  (PK)
+- ID_Klasy  (FK - Klasa.ID)
+- ID_Nauczyciela  (FK - Nauczyciele.ID)

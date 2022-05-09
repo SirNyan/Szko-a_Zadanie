@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "dgSpecHash": "JW+67un+nH1g0iNNX1bC/rrWzTHTDXG5yHsaI+93MeXvHJAV1OmRmBq1cAe2jbGbkHuHXUXmCuCRDQXDNxrAIg==",
+  "success": true,
+  "projectFilePath": "C:\\Users\\PC\\source\\repos\\Szkola_Server\\Szkola_Server\\Szkola_Server.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\PC\\.nuget\\packages\\npgsql\\6.0.4\\npgsql.6.0.4.nupkg.sha512",
+    "C:\\Users\\PC\\.nuget\\packages\\system.diagnostics.diagnosticsource\\6.0.0\\system.diagnostics.diagnosticsource.6.0.0.nupkg.sha512",
+    "C:\\Users\\PC\\.nuget\\packages\\system.memory\\4.5.4\\system.memory.4.5.4.nupkg.sha512",
+    "C:\\Users\\PC\\.nuget\\packages\\system.runtime.compilerservices.unsafe\\6.0.0\\system.runtime.compilerservices.unsafe.6.0.0.nupkg.sha512"
+  ],
+  "logs": []
+}

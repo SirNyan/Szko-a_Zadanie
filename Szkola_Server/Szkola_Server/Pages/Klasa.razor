@@ -1,0 +1,190 @@
+﻿@page "/klasa"
+<h3>Klasy</h3>
+
+<br>
+<label for="ID">ID:  </label>
+<input type="number" id="ID" name="ID" @oninput="@((e) => { labelID=(string)e.Value;})">
+<br>
+<label for="klasaL">Nazwa klasy:  </label>
+<input type="text" id="klasaL" name="klasaL" @oninput="@((e) => { labelKlasa=(string)e.Value;})">
+<br>
+<button type="button" @onclick="search">Szukaj</button>
+<button type="button" @onclick="update">Aktualizacja</button>
+<button type="button" @onclick="create">Stworz</button>
+<button type="button" @onclick="delete">Usun</button>
+<br>
+<label for="klasaL">@message  </label>
+<table class="table">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Klasa</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (klasy klasa in klasaLista)
+        {
+            <tr>
+                <th>@klasa.id</th>
+                <th>@klasa.klasa</th>
+            </tr>
+        }
+    </tbody>
+</table>
+@code {
+    private List<klasy> klasaLista;
+    private NpgsqlConnection connection;
+    private NpgsqlDataReader reader;
+    private string labelID;
+    private string labelKlasa;
+
+    private string message = "";
+
+    // Łączenie się z bazą sql poprzez użycie NPGSql
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            labelID = "";
+            labelKlasa = "";
+            klasaLista = new List<klasy>();
+            connection = new NpgsqlConnection("Host=localhost;Database=szkola;Username=postgres;Password=czarnykot;Persist Security Info=True");
+            connection.Open();
+            querry("SELECT * FROM klasy");
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e.Message);
+        }
+
+    }
+
+    /// <summary>
+    /// Metoda wysyłająca kod SQL z instrukcjami co do servera SQL. Może prosić o dane, tworzyć nowe tabele
+    /// usuwać albo edytować
+    /// </summary>
+    /// <param name="querry">Linia zawierająca kod SQLa</param>
+    protected void querry(string querry)
+    {
+        try
+        {
+            klasaLista.Clear();
+            NpgsqlCommand cmd = new NpgsqlCommand(querry, connection);
+            reader = cmd.ExecuteReader();
+
+            // Jeżeli reader dostał informacje spowrotem kod przekształca dane w tabele
+            if (reader.HasRows)
+            {
+                while (reader.Read())
+                {
+                    klasy st = new klasy();
+                    st.id = Int32.Parse(reader[0].ToString());
+                    st.klasa = reader[1].ToString();
+                    klasaLista.Add(st);
+                }
+                StateHasChanged();
+            }
+            reader.Close();
+        }
+        catch (Exception e)
+        {
+            message = "Querry: " + querry + " " + e.Message;
+            Console.WriteLine(e.Message);
+        }
+    }
+
+    // Wyszukaj największej liczby ID i ją oddaje. Do wykorzystania podczas tworzenia nowego wpisu do tabeli
+    public int getMaxID()
+    {
+        try
+        {
+            int maxID = 0;
+            NpgsqlCommand cmd = new NpgsqlCommand("SELECT Max(id) FROM klasy", connection);
+            reader = cmd.ExecuteReader();
+            if (reader.HasRows)
+            {
+                while (reader.Read())
+                {
+                    maxID = Int32.Parse(reader[0].ToString());
+                }
+            }
+            reader.Close();
+            return maxID;
+        }
+        catch (Exception e)
+        {
+            message = e.Message;
+            return 1;
+        }
+    }
+
+    // Wyszukiwanie informacji na podstawie wpisanych danych przez użytkownika.
+    // Metoda tworzy kod SQL jako 'stringQuerry' i wysyła kod do querry()
+    protected void search()
+    {
+        bool flaga = false;
+        string stringQuerry = "SELECT * FROM klasy";
+        if (!labelID.Equals(""))
+        {
+            stringQuerry += $" WHERE id='{labelID}' ";
+            flaga = true;
+        }
+        if (!labelKlasa.Equals(""))
+        {
+            if (flaga)
+            {
+                stringQuerry += $"AND nazwa_klasy='{labelKlasa}' ";
+            }
+            else
+            {
+                stringQuerry += $" WHERE nazwa_klasy='{labelKlasa}' ";
+                flaga = true;
+            }
+        }
+        querry(stringQuerry);
+    }
+
+    // Metoda która edytuje wpisane już informacje na podstanie ID 'WHERE id={labelID}'
+    public void update()
+    {
+        string stringQuerry;
+        if (!labelID.Equals("") && !labelKlasa.Equals(""))
+        {
+            stringQuerry = $"UPDATE klasy SET nazwa_klasy = '{labelKlasa}' WHERE id = '{labelID}'";
+            querry(stringQuerry);
+            querry("SELECT * FROM klasy");
+        }
+        else
+        {
+            message = "Uzupelnij wszystkie warunki!";
+        }
+    }
+
+    // Stwórz nowy wpis do tabeli
+    public void create()
+    {
+        if (!labelKlasa.Equals(""))
+        {
+            int maxID = getMaxID();
+            querry($"INSERT INTO klasy VALUES ('{maxID + 1}', '{labelKlasa}')");
+            querry("SELECT * FROM klasy");
+        }
+    }
+
+    // Usuń wpis z tabeli
+    public void delete()
+    {
+        if (!labelID.Equals(""))
+        {
+            querry($"DELETE FROM klasy WHERE id='{Int32.Parse(labelID)}'");
+            querry("SELECT * FROM klasy");
+        }
+    }
+
+    // Klasa przechowuje dane z tabeli
+    public class klasy
+    {
+        public int id { get; set; }
+        public string klasa { get; set; }
+    }
+}
